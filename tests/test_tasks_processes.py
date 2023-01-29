@@ -45,7 +45,7 @@ def pytest_spark_session(request):
 
     return spark
 
-def custom_logger(app_name):
+def pytest_logger(request):
 
     """
     Create python logger handler
@@ -57,6 +57,7 @@ def custom_logger(app_name):
     """
 
     # Define python logger
+    app_name = 'HelloFresh | Data Engineer | Unit Tests | Sanoj Fonseka | '
     logger = logging.getLogger(app_name)
 
     # Define logg pattern
@@ -97,7 +98,7 @@ def df_equality(df1, df2):
         
     return True
 
-logger = custom_logger(app_name = 'HelloFresh | Data Engineer | Unit Tests | Sanoj Fonseka | ')
+pytestlogger = pytest.mark.usefixtures("pytest_logger")
 pytestspark = pytest.mark.usefixtures("pytest_spark_session")
 
 def create_test_input_data_for_unit_testing(pytest_spark_session):
@@ -226,7 +227,7 @@ def create_aggregated_data_for_unit_testing(pytest_spark_session):
 
     return aggregate_df
 
-def test_pre_process_raw_data(pytest_spark_session, logger):
+def test_pre_process_raw_data(pytest_spark_session, pytest_logger):
 
     """
     Unit testing for pre propcess raw data function
@@ -245,12 +246,12 @@ def test_pre_process_raw_data(pytest_spark_session, logger):
     expected_result = create_pre_processed_for_unit_testing(pytest_spark_session)
     
     # Execute main function with testing data
-    result = pre_process_raw_data(input_data, logger)
+    result = pre_process_raw_data(input_data, pytest_logger)
 
     # Assersion of result and expected results
     assert(df_equality(result, expected_result))
 
-def test_aggregate_pre_processed_data(pytest_spark_session, logger):
+def test_aggregate_pre_processed_data(pytest_spark_session, pytest_logger):
 
     """
     Unit testing for pre propcess raw data function
@@ -269,7 +270,7 @@ def test_aggregate_pre_processed_data(pytest_spark_session, logger):
     expected_result = create_aggregated_data_for_unit_testing(pytest_spark_session)
     
     # Execute main function with testing data
-    result  = aggregate_pre_processed_data(processed_data, logger)
+    result  = aggregate_pre_processed_data(processed_data, pytest_logger)
 
     # Assersion of result and expected results
     assert(df_equality(result, expected_result))
