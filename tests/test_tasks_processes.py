@@ -269,9 +269,11 @@ def test_aggregate_pre_processed_data(pytest_spark_session, pytest_logger):
     # Define dataframes for unit testoing
     processed_data = create_pre_processed_for_unit_testing(pytest_spark_session)
     expected_result = create_aggregated_data_for_unit_testing(pytest_spark_session)
+
+    ingredient = 'beef'
     
     # Execute main function with testing data
-    result  = aggregate_pre_processed_data(processed_data, pytest_logger)
+    result  = aggregate_pre_processed_data(processed_data, ingredient ,pytest_logger)
 
     # Assersion of result and expected results
     assert(df_equality(result, expected_result))
