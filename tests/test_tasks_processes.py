@@ -19,7 +19,7 @@ from src._run_scripts_ import *
 warnings.filterwarnings('ignore')
 
 @pytest.fixture(scope="session")
-def create_spark_session():
+def create_spark_session(request):
 
     """
     Create spark session
@@ -98,7 +98,7 @@ def df_equality(df1, df2):
     return True
 
 logger = custom_logger(app_name = 'HelloFresh | Data Engineer | Unit Tests | Sanoj Fonseka | ')
-spark = create_spark_session()
+spark = pytest.mark.usefixtures("create_spark_session")
 
 def create_test_input_data_for_unit_testing(spark):
 
