@@ -35,7 +35,7 @@ jobs:
       - name: Test with pytest
         run: |
           pip install pytest
-          pytest --doctest-modules --junitxml=junit/test-results.xml tests/python_unittest.py
+          pytest --doctest-modules --junitxml=junit/test-results.xml tests/test_tasks_processes.py
           tests/test_tasks_processes.py
 
   # build-and-push-image:
