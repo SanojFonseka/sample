@@ -45,6 +45,7 @@ def pytest_spark_session(request):
 
     return spark
 
+@pytest.fixture(scope="session")
 def pytest_logger(request):
 
     """
