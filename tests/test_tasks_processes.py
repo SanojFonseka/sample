@@ -1,9 +1,108 @@
-from tests.test_utilities import *
+import os, uuid, sys, traceback
+import warnings
+import pyspark
+from pyspark.sql.types import *
+from pyspark.sql import *
+import  pyspark.sql.functions as f
+from pyspark.sql import SparkSession
+from pyspark.context import SparkConf, SparkContext
+from pyspark import StorageLevel
+from pyspark.sql import SparkSession
+import logging
+from logging import StreamHandler
+import html
+import time
+import pytest
+import datetime
+from src._run_scripts_ import *
 
-logger = custom_logger(app_name = 'HelloFresh | Data Engineer | Unit Tests | Sanoj Fonseka | ')
+warnings.filterwarnings('ignore')
 
 @pytest.fixture(scope="session")
-def create_test_input_data_for_unit_testing(spark):
+def pytest_spark_session(request):
+
+    """
+    Create spark session
+
+    Returns
+    -------
+    SparkSession
+        Spark session.
+    """
+
+    spark = (
+        SparkSession
+        .builder
+        .appName("unittesting")
+        .config('spark.sql.parquet.int96RebaseModeInWrite', 'LEGACY')
+        .config("spark.sql.legacy.timeParserPolicy","LEGACY")
+        .config("spark.sql.caseSensitive","true")
+        .config("spark.databricks.delta.schema.autoMerge.enabled", True)
+        .config("spark.sql.shuffle.partitions", 2)
+        .config("spark.default.parallelism", 2)
+        .getOrCreate()
+        )
+
+    return spark
+
+@pytest.fixture(scope="session")
+def pytest_logger(request):
+
+    """
+    Create python logger handler
+
+    Returns
+    -------
+    logger
+        logger handler.
+    """
+
+    # Define python logger
+    app_name = 'HelloFresh | Data Engineer | Unit Tests | Sanoj Fonseka | '
+    logger = logging.getLogger(app_name)
+
+    # Define logg pattern
+    formatter = logging.Formatter(fmt='%(asctime)s %(name)s %(levelname)s: %(message)s (%(filename)s:%(lineno)d)',datefmt='%Y-%m-%d %H:%M:%S')
+    logger.setLevel(logging.INFO)
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+
+    return logger
+
+def df_equality(df1, df2):
+
+    """
+    Check equality of spark datafarmes
+
+    Parameter
+    ---------
+    df1 : pyspark.sql.dataframe.DataFrame
+        spark dataframe.
+
+    df2 : pyspark.sql.dataframe.DataFrame
+        spark dataframe.
+
+    Returns
+    -------
+    boolean
+        Boolean state of data frames equality.
+    """
+
+    # Check dataframes schemas
+    if df1.schema != df2.schema:
+        return False
+    
+    # Check dataframes values
+    if df1.collect() != df2.collect():
+        return False
+        
+    return True
+
+pytestlogger = pytest.mark.usefixtures("pytest_logger")
+pytestspark = pytest.mark.usefixtures("pytest_spark_session")
+
+def create_test_input_data_for_unit_testing(pytest_spark_session):
 
     """
     Create spark dataframe for input data for unit testing
@@ -44,11 +143,11 @@ def create_test_input_data_for_unit_testing(spark):
     ]
 
     # Create spark datafarme
-    input_df = spark.createDataFrame(input_data_dict, input_schema)
+    input_df = pytest_spark_session.createDataFrame(input_data_dict, input_schema)
 
     return input_df
 
-def create_pre_processed_for_unit_testing(spark):
+def create_pre_processed_for_unit_testing(pytest_spark_session):
 
     """
     Create spark dataframe for pre processed data for unit testing
@@ -91,11 +190,11 @@ def create_pre_processed_for_unit_testing(spark):
         ]
 
     # Create spark dataframe
-    pre_processed_df = spark.createDataFrame(pre_processed_data_dict,  pre_processed_schema)
+    pre_processed_df = pytest_spark_session.createDataFrame(pre_processed_data_dict,  pre_processed_schema)
 
     return pre_processed_df
 
-def create_aggregated_data_for_unit_testing(spark):
+def create_aggregated_data_for_unit_testing(pytest_spark_session):
 
     """
     Create spark dataframe for aggregated data for unit testing
@@ -125,11 +224,11 @@ def create_aggregated_data_for_unit_testing(spark):
     ]
 
     # Create spark datafarme
-    aggregate_df = spark.createDataFrame(aggregate_data_dict, aggregate_schema)
+    aggregate_df = pytest_spark_session.createDataFrame(aggregate_data_dict, aggregate_schema)
 
     return aggregate_df
 
-def test_pre_process_raw_data(spark, logger):
+def test_pre_process_raw_data(pytest_spark_session, pytest_logger):
 
     """
     Unit testing for pre propcess raw data function
@@ -144,16 +243,16 @@ def test_pre_process_raw_data(spark, logger):
     """
 
     # Define dataframes for unit testoing
-    input_data = create_test_input_data_for_unit_testing(spark)
-    expected_result = create_pre_processed_for_unit_testing(spark)
+    input_data = create_test_input_data_for_unit_testing(pytest_spark_session)
+    expected_result = create_pre_processed_for_unit_testing(pytest_spark_session)
     
     # Execute main function with testing data
-    result = pre_process_raw_data(input_data, logger)
+    result = pre_process_raw_data(input_data, pytest_logger)
 
     # Assersion of result and expected results
     assert(df_equality(result, expected_result))
 
-def test_aggregate_pre_processed_data(spark, logger):
+def test_aggregate_pre_processed_data(pytest_spark_session, pytest_logger):
 
     """
     Unit testing for pre propcess raw data function
@@ -168,11 +267,13 @@ def test_aggregate_pre_processed_data(spark, logger):
     """
 
     # Define dataframes for unit testoing
-    processed_data = create_pre_processed_for_unit_testing(spark)
-    expected_result = create_aggregated_data_for_unit_testing(spark)
+    processed_data = create_pre_processed_for_unit_testing(pytest_spark_session)
+    expected_result = create_aggregated_data_for_unit_testing(pytest_spark_session)
+
+    ingredient = 'beef'
     
     # Execute main function with testing data
-    result  = aggregate_pre_processed_data(processed_data, logger)
+    result  = aggregate_pre_processed_data(processed_data, ingredient ,pytest_logger)
 
     # Assersion of result and expected results
     assert(df_equality(result, expected_result))
